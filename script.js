@@ -3,20 +3,30 @@ let canvas;
 let ctx;
 
 canvas = document.createElement("canvas");
-// canvas에 2d라는 세계를 ctx에 넣어준다.
-ctx = canvas.getContext("2d");
+ctx = canvas.getContext("2d"); // Assign 2D context to the canvas
+
 // Size of the canvas
 canvas.width = 400;
 canvas.height = 700;
-// HTML body 태그에 canvas를 붙여준다
+
+// Append canvas to the HTML body
 document.body.appendChild(canvas);
 
-// Get all Images
+// Load all images
 let backgroundImage, starfighterImage, bulletImage, enemyImage, gameOverImage;
-let gameOver = false; // 게임의 상태 값
+let gameOver = false;
 let score = 0;
+let isGameStarted = false;
 
-// location of starfighter
+// Game start Button
+const button = {
+  x: canvas.width / 2 - 55,
+  y: canvas.height / 2 - 100,
+  width: 110,
+  height: 40,
+};
+
+// Starfighter position
 let starfighterx = canvas.width / 2 - 32;
 let starfightery = canvas.height - 64;
 
@@ -34,20 +44,21 @@ function Bullet() {
   this.update = function () {
     this.y -= 5;
   };
-  this.checkHit = function() {
-    for( let i = 0; i < enemyList.length; i++ ) {
-        if( 
-            this.y <= enemyList[i].y && 
-            this.x >= enemyList[i].x && 
-            this.x <= enemyList[i].x + 30 
-        ) {
-            score++;
-            this.alive = false;
-            enemyList.splice( i, 1 );
-        }
+  this.checkHit = function () {
+    for (let i = 0; i < enemyList.length; i++) {
+      if (
+        this.y <= enemyList[i].y &&
+        this.x >= enemyList[i].x &&
+        this.x <= enemyList[i].x + 30
+      ) {
+        score++;
+        this.alive = false;
+        enemyList.splice(i, 1);
+        break;
+      }
     }
-  }
-};
+  };
+}
 
 function generateRandomValue(min, max) {
   let randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -67,8 +78,8 @@ function Enemy() {
   this.update = function () {
     this.y += 1; //  적군의 속도 조절
 
-    if ( this.y >= canvas.height - 32 ) {
-        gameOver = true;
+    if (this.y >= canvas.height - 32) {
+      gameOver = true;
     }
   };
 }
@@ -88,6 +99,10 @@ function loadImage() {
 
   gameOverImage = new Image();
   gameOverImage.src = "assets/game-over.png";
+
+  backgroundImage.onload = function () {
+    drawStartScreen();
+  };
 }
 
 let keysdown = {};
@@ -118,45 +133,69 @@ function createEnemy() {
 }
 
 function update() {
-  // 우주선의 속도
+
+  // Starfighter movement speed
   if (39 in keysdown) {
     starfighterx += 1.5;
   }
   if (37 in keysdown) {
     starfighterx -= 1.5;
   }
-  // 우주선의 좌표값이 무한대로 업데이트가 되는게 아닌 캔버스 안에서만 머물게 하는 방법
+  // Prevent starfighter from leaving canvas
   if (starfighterx <= 0) {
     starfighterx = 0;
   }
-  if (starfighterx >= canvas.width - 64) {
-    starfighterx = canvas.width - 64;
+  if (starfighterx >= canvas.width - 48) {
+    starfighterx = canvas.width - 48;
   }
 
-  //총알의 y좌표를 업데이트하는 함수 호출 (총알이 발사되는 함수)
+  // Update bullets
   for (let i = 0; i < bulletList.length; i++) {
-    if(bulletList[i].alive) {
-        bulletList[i].update();
-        bulletList[i].checkHit();
+    if (bulletList[i].alive) {
+      bulletList[i].update();
+      bulletList[i].checkHit();
     }
   }
 
-  // 적군을 업데이트 하는 함수 호출 떨어지게 하는
+  // Update enemies
   for (let i = 0; i < enemyList.length; i++) {
     enemyList[i].update();
   }
 }
 
+// Draw start screen
+function drawStartScreen() {
+  ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = "50px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Pixel Invaders", canvas.width / 2, canvas.height / 2 - 170);
+
+  
+  ctx.fillStyle = "#d3d3d3";
+  ctx.fillRect(button.x, button.y, button.width, button.height);
+  
+  ctx.fillStyle = "#000";
+  ctx.font = "18px Arial";
+  ctx.fillText("Start Game", canvas.width / 2, button.y + button.height / 2 + 6);
+}
+
 function render() {
+  if (!isGameStarted) {
+    drawStartScreen();
+    return;
+  }
+
   ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
   ctx.drawImage(starfighterImage, starfighterx, starfightery, 48, 48);
-  ctx.fillText(`Score:${score}`, 20, 20);
+  ctx.fillText(`Score:${score}`, 50, 30);
   ctx.fillStyle = "white";
   ctx.font = "20px Arial";
 
   for (let i = 0; i < bulletList.length; i++) {
-    if( bulletList[i].alive ) {
-        ctx.drawImage(bulletImage, bulletList[i].x, bulletList[i].y);
+    if (bulletList[i].alive) {
+      ctx.drawImage(bulletImage, bulletList[i].x, bulletList[i].y);
     }
   }
 
@@ -166,45 +205,63 @@ function render() {
 }
 
 function main() {
-    if (!gameOver) {
-        update(); // 좌표값을 업데이트
-        render(); // 그려준다
-        requestAnimationFrame(main);
-    } else {
-        ctx.drawImage(gameOverImage, 5, 100, 390, 280);
-    }
+  if (!gameOver) {
+    update(); // Update positions
+    render(); // Draw everything
+    requestAnimationFrame(main);
+  } else {
+    ctx.drawImage(gameOverImage, 5, 100, 390, 280);
+  }
 }
 
-loadImage();
-setupKeyboardListener();
-createEnemy();
-main();
+// Handle start button click on canvas
+canvas.addEventListener("click", (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  if (
+    !isGameStarted &&
+    mouseX >= button.x &&
+    mouseX <= button.x + button.width &&
+    mouseY >= button.y &&
+    mouseY <= button.y + button.height
+  ) {
+    isGameStarted = true;
+    createEnemy();
+    main();
+  }
+});
 
-// 우주선의 움직임
-//1. 우주선의 좌우로 움직여야 한다. 각 방향키는 고유의 값이 있다. 37, 38, 39, 40
-//2. 우주선이 오른쪽으로 가면 x좌표의 값이 증가한다. 왼쪽으로 감ㄴ x 좌표의 값이 감소한다.
-//3. 키를 누르면 움직임이 가져가고, 누르지 않는 순간의 멈춤을 위해서 delete 코드를 넣어준다.
-//4. 우주선이 캔버스 좌표 밖으로 나가지 않게 하기 위해서 좌표를 넣어준다.
-//5. 다시 render 해준다.
+function init() {
+  loadImage();
+  setupKeyboardListener();
+}
 
-// 총알 만들기
-//1. 스페이스바를 누르면 총알이 발사 된다
-//2. 총알이 발사 = 총알의 값이 Y값 -으로 움직인다. 총알의 x값은, 스페이스를 누른 순간의 우주선의 x좌표가 된다
-//3. 발사된 총알들은 총알의 배열에 저장을 한다.
-//4. 모든 총알들은 x,y의 좌표값이 존대해야 한다.
-//5. 총알의 배열을 가지고 render 해준다
+init();
 
-// 적군 만들기
-//1. 적군은 위치가 랜덤하다
-//2. 적군은 밑으로 내려오는 형태, y좌표가 증가한다
-//3. 1초마다 하나의 적군이 출현
-//4. 적군이 우주선이 바닥에 닿으면 게임오버
-//5. 총알이 적군을 맞추면 우주선이 사라지고 점수를 1포인트 얻는다.
+// Starfighter movement
+// 1. Moves left/right with arrow keys (keyCodes: 37, 38, 39, 40)
+// 2. Right movement increases x, left movement decreases x
+// 3. Uses delete to stop movement when key is released
+// 4. Keeps starfighter inside canvas bounds
+// 5. Re-render to reflect movement
 
-// 적군이 죽는다
-//1. 총알이 적군에게 닿는다. (총알의 y값이 감소한다 적군의 y값보다)
-//2. 총알이 닿는 면적은 적군의 x값을 기준으로 만들어야 한다
-//3. 총알이 적군에 닿으면 총알과 적군이 사라지고 포인트를 얻는다.
-// 총알.y <= 적군.y and
-// 총알.x >= 적군.y and 총알.x <= 적군.x + 적군의 크기
+// Bullet creation
+// 1. Fires bullet when spacebar is pressed
+// 2. Bullet moves up (y decreases); x is based on starfighter position at time of firing
+// 3. Bullets are stored in an array
+// 4. Each bullet keeps track of its own x and y
+// 5. Render all bullets on screen
 
+// Enemy creation
+// 1. Enemies appear at random x positions
+// 2. Enemies fall downward (y increases)
+// 3. One enemy spawns every second
+// 4. If enemy reaches bottom, it's game over
+// 5. Bullet hitting enemy removes enemy and increases score by 1
+
+// Enemy gets destroyed
+// 1. Bullet hits enemy (bullet y <= enemy y)
+// 2. Bullet x should be within enemy x range
+// 3. On collision, remove both bullet and enemy, and add point
+// Condition: bullet.y <= enemy.y && bullet.x >= enemy.x && bullet.x <= enemy.x + enemy width
