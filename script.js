@@ -18,6 +18,13 @@ let gameOver = false;
 let score = 0;
 let isGameStarted = false;
 
+// Starfighter position
+let starfighterx = canvas.width / 2 - 32;
+let starfightery = canvas.height - 64;
+
+let bulletList = [];
+let enemyList = [];
+
 // Game start Button
 const button = {
   x: canvas.width / 2 - 55,
@@ -26,11 +33,13 @@ const button = {
   height: 40,
 };
 
-// Starfighter position
-let starfighterx = canvas.width / 2 - 32;
-let starfightery = canvas.height - 64;
-
-let bulletList = [];
+// Game restart Button
+const restartButton = {
+  x: canvas.width / 2 - 55,
+  y: canvas.height / 2 - 50,
+  width: 110,
+  height: 40,
+};
 
 function Bullet() {
   this.x = 0;
@@ -64,8 +73,6 @@ function generateRandomValue(min, max) {
   let randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
   return randomNum;
 }
-
-let enemyList = [];
 
 function Enemy() {
   this.x = 0;
@@ -133,7 +140,6 @@ function createEnemy() {
 }
 
 function update() {
-
   // Starfighter movement speed
   if (39 in keysdown) {
     starfighterx += 1.5;
@@ -172,13 +178,44 @@ function drawStartScreen() {
   ctx.textAlign = "center";
   ctx.fillText("Pixel Invaders", canvas.width / 2, canvas.height / 2 - 170);
 
-  
   ctx.fillStyle = "#d3d3d3";
   ctx.fillRect(button.x, button.y, button.width, button.height);
-  
+
   ctx.fillStyle = "#000";
   ctx.font = "18px Arial";
-  ctx.fillText("Start Game", canvas.width / 2, button.y + button.height / 2 + 6);
+  ctx.fillText(
+    "Start Game",
+    canvas.width / 2,
+    button.y + button.height / 2 + 6
+  );
+}
+
+// Draw restart button
+function drawRestartButton() {
+  ctx.fillStyle = "#d3d3d3";
+  ctx.fillRect(
+    restartButton.x,
+    restartButton.y,
+    restartButton.width,
+    restartButton.height
+  );
+
+  ctx.strokeStyle = "#000";
+  ctx.strokeRect(
+    restartButton.x,
+    restartButton.y,
+    restartButton.width,
+    restartButton.height
+  );
+
+  ctx.fillStyle = "#000";
+  ctx.font = "18px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    "Restart",
+    canvas.width / 2,
+    restartButton.y + restartButton.height / 2 + 6
+  );
 }
 
 function render() {
@@ -211,6 +248,7 @@ function main() {
     requestAnimationFrame(main);
   } else {
     ctx.drawImage(gameOverImage, 5, 100, 390, 280);
+    drawRestartButton();
   }
 }
 
@@ -219,6 +257,8 @@ canvas.addEventListener("click", (event) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = event.clientX - rect.left;
   const mouseY = event.clientY - rect.top;
+
+  // Start button
   if (
     !isGameStarted &&
     mouseX >= button.x &&
@@ -230,7 +270,35 @@ canvas.addEventListener("click", (event) => {
     createEnemy();
     main();
   }
+
+  // Restart button
+  if (
+    gameOver &&
+    mouseX >= restartButton.x &&
+    mouseX <= restartButton.x + restartButton.width &&
+    mouseY >= restartButton.y &&
+    mouseY <= restartButton.y + restartButton.height
+  ) {
+    resetGame();
+  }
 });
+
+function resetGame() {
+  // Reset state
+  gameOver = false;
+  isGameStarted = false;
+  score = 0;
+
+  // Reset positions
+  starfighterx = canvas.width / 2 - 32;
+  starfightery = canvas.height - 64;
+
+  bulletList = [];
+  enemyList = [];
+
+  // Restart with start screen
+  drawStartScreen();
+}
 
 function init() {
   loadImage();
